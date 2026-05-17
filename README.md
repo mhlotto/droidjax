@@ -83,6 +83,23 @@ val profile = DelimiterProfile(
 )
 ```
 
+Validate and compose user snippets:
+
+```kotlin
+val userSnippet = UserSnippet(
+    id = "quadratic-formula",
+    title = "Quadratic Formula",
+    templateBody = "x = \\frac{<|term=-b> \\pm \\sqrt{<radicand=b^2-4ac>}}{<denominator=2a>}",
+)
+
+val library = SnippetLibrary(userSnippets = listOf(userSnippet))
+val validation = library.validate()
+
+if (validation.isValid) {
+    val matches = library.search("quadratic")
+}
+```
+
 ## Tests
 
 Run the core test suite with:

@@ -39,7 +39,9 @@ chat history.
 - [x] Add matrices, cases, aligned equations, functions, accents, and common
   sets.
 - [x] Add a pure Kotlin placeholder session model for frontend cursor movement.
-- [ ] Add user-defined snippets.
+- [x] Add user-defined snippet and snippet pack models.
+- [x] Add pure Kotlin snippet/template/catalog validation.
+- [x] Add catalog composition for built-ins plus user snippets.
 - [ ] Add recent snippets and favorites models.
 
 ## Settings And Persistence

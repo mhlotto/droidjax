@@ -233,6 +233,109 @@ class CoreTest {
         assertEquals("\\mathbb{R}", snippets.getValue("real-numbers").toInsertOperation().text)
     }
 
+    @Test
+    fun allBuiltInSnippetsHaveUniqueIdsKnownCategoriesAndValidTemplates() {
+        val snippets = SnippetCatalog.builtIn()
+        val validation = SnippetValidator.validateCatalog(snippets)
+
+        assertTrue(validation.issues.joinToString { it.message }, validation.isValid)
+        assertEquals(snippets.size, snippets.map { it.id }.toSet().size)
+        snippets.forEach { snippet ->
+            val operation = snippet.toInsertOperation()
+            assertTrue(operation.cursorOffsetFromEnd in 0..operation.text.length)
+            operation.placeholders.forEach { placeholder ->
+                assertTrue(placeholder.start in 0..operation.text.length)
+                assertTrue(placeholder.end in 0..operation.text.length)
+            }
+        }
+    }
+
+    @Test
+    fun templateValidationReportsMalformedMarkers() {
+        val unclosed = SnippetValidator.validateTemplate(Template("\\frac{<|numerator}{}"))
+        val emptyLabel = SnippetValidator.validateTemplate(Template("\\sqrt{<|=x>}"))
+        val nested = SnippetValidator.validateTemplate(Template("\\sqrt{<outer<inner>>}"))
+
+        assertContainsIssue<UnclosedPlaceholderMarker>(unclosed.issues)
+        assertContainsIssue<EmptyPlaceholderLabel>(emptyLabel.issues)
+        assertContainsIssue<NestedPlaceholderMarker>(nested.issues)
+    }
+
+    @Test
+    fun snippetValidationReportsBadMetadataAndTemplateErrors() {
+        val validation = SnippetValidator.validateSnippet(
+            Snippet(
+                id = "Bad Id",
+                title = "",
+                category = "missing",
+                templateBody = "\\sqrt{<|=x>}",
+            ),
+        )
+
+        assertContainsIssue<InvalidSnippetId>(validation.issues)
+        assertContainsIssue<BlankSnippetTitle>(validation.issues)
+        assertContainsIssue<UnknownSnippetCategory>(validation.issues)
+        assertContainsIssue<SnippetTemplateIssue>(validation.issues)
+    }
+
+    @Test
+    fun catalogValidationReportsDuplicateIds() {
+        val validation = SnippetValidator.validateCatalog(
+            listOf(
+                snippet("fraction"),
+                snippet("fraction"),
+            ),
+        )
+
+        assertContainsIssue<DuplicateSnippetId>(validation.issues)
+    }
+
+    @Test
+    fun snippetLibraryCombinesBuiltInsAndUserSnippets() {
+        val userSnippet = UserSnippet(
+            id = "quadratic-formula",
+            title = "Quadratic Formula",
+            category = SnippetCatalog.Category.Structure,
+            templateBody = "x = \\frac{<|term=-b> \\pm \\sqrt{<radicand=b^2-4ac>}}{<denominator=2a>}",
+            aliases = listOf("quadratic"),
+            previewText = "quadratic",
+        )
+        val library = SnippetLibrary(userSnippets = listOf(userSnippet))
+
+        assertTrue(library.validate().isValid)
+        assertContains(library.search("quadratic").map { it.id }.toSet(), "quadratic-formula")
+        assertContains(
+            library.grouped().flatMap { it.snippets }.map { it.id }.toSet(),
+            "quadratic-formula",
+        )
+        assertEquals(
+            "x = \\frac{-b \\pm \\sqrt{b^2-4ac}}{2a}",
+            userSnippet.toSnippet().toInsertOperation().text,
+        )
+    }
+
+    @Test
+    fun snippetLibraryValidationIncludesUserSnippetProblems() {
+        val library = SnippetLibrary(
+            userSnippets = listOf(
+                UserSnippet(
+                    id = "fraction",
+                    title = "Duplicate Fraction",
+                    templateBody = "<|value>",
+                ),
+                UserSnippet(
+                    id = "bad user id",
+                    title = "",
+                    templateBody = "<|=x>",
+                ),
+            ),
+        )
+        val validation = library.validate()
+
+        assertContainsIssue<DuplicateSnippetId>(validation.issues)
+        assertContainsIssue<InvalidCatalogSnippet>(validation.issues)
+    }
+
     private fun snippet(
         id: String,
         profile: DelimiterProfile = DelimiterProfile.DefaultMathJax,
@@ -240,5 +343,12 @@ class CoreTest {
 
     private fun <T> assertContains(values: Set<T>, expected: T) {
         assertTrue("Expected <$expected> in <$values>.", expected in values)
+    }
+
+    private inline fun <reified T : ValidationIssue> assertContainsIssue(issues: List<ValidationIssue>) {
+        assertTrue(
+            "Expected issue ${T::class.simpleName} in ${issues.map { it.message }}.",
+            issues.any { it is T },
+        )
     }
 }
