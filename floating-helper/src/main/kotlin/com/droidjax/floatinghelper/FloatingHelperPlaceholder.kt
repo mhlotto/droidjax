@@ -1,0 +1,3 @@
+package com.droidjax.floatinghelper
+
+object FloatingHelperPlaceholder
