@@ -12,8 +12,9 @@ Android helper for MathJax/TeX input.
   `InsertOperation`.
 - `:keyboard-ime` is an Android library for the IME frontend. It currently
   contains a minimal `InputMethodService` proof of concept.
-- `:floating-helper` is an Android library placeholder for the future
-  floating/snippet helper.
+- `:floating-helper` is an Android library for the normal Activity-based helper
+  prototype. It can search grouped snippets, compose TeX, move through
+  placeholders, switch delimiter profiles in memory, and copy the composed text.
 - `:app` is a minimal Android app shell for future settings and onboarding.
 
 Android modules depend on `:core`; `:core` remains Android-free.
@@ -30,6 +31,8 @@ An `InsertOperation` contains:
 - `text`: clean TeX/MathJax text to insert.
 - `cursorOffsetFromEnd`: where the initial cursor should land after insertion.
 - `placeholderRanges`: zero-width placeholder targets in the inserted text.
+- `placeholders`: richer placeholder metadata with labels, default text, and
+  selection bounds.
 - optional snippet metadata (`id`, `title`, `category`).
 
 ## Examples
@@ -45,15 +48,14 @@ val fraction = SnippetCatalog
 // fraction.text == "\\frac{}{}"
 // fraction.initialCursorPosition == 6
 // fraction.placeholderRanges == listOf(6..6, 8..8)
+// fraction.placeholders.map { it.label } == listOf("numerator", "denominator")
 ```
 
 Move through placeholders:
 
 ```kotlin
-val secondPlaceholder = PlaceholderNavigator.nextCursorPosition(
-    operation = fraction,
-    currentCursorPosition = fraction.initialCursorPosition,
-)
+val session = PlaceholderSession.start(fraction)
+val secondPlaceholder = session.next()
 ```
 
 Use a delimiter profile:

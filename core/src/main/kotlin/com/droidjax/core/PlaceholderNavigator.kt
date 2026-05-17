@@ -1,13 +1,18 @@
 package com.droidjax.core
 
 object PlaceholderNavigator {
+    fun nextPlaceholderTarget(
+        operation: InsertOperation,
+        currentCursorPosition: Int,
+    ): Placeholder? = operation.placeholders.firstOrNull { it.start > currentCursorPosition }
+
     fun nextPlaceholder(
         operation: InsertOperation,
         currentCursorPosition: Int,
-    ): IntRange? = operation.placeholderRanges.firstOrNull { it.first > currentCursorPosition }
+    ): IntRange? = nextPlaceholderTarget(operation, currentCursorPosition)?.range
 
     fun nextCursorPosition(
         operation: InsertOperation,
         currentCursorPosition: Int,
-    ): Int = nextPlaceholder(operation, currentCursorPosition)?.first ?: operation.text.length
+    ): Int = nextPlaceholderTarget(operation, currentCursorPosition)?.start ?: operation.text.length
 }

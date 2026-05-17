@@ -6,6 +6,8 @@ data class Snippet(
     val category: String,
     val templateBody: String,
     val aliases: List<String> = emptyList(),
+    val previewText: String = templateBody,
+    val accessibilityLabel: String = title,
 ) {
     fun toInsertOperation(): InsertOperation =
         TemplateEngine.toInsertOperation(
@@ -17,6 +19,17 @@ data class Snippet(
             ),
         )
 }
+
+data class SnippetCategory(
+    val id: String,
+    val title: String,
+    val sortOrder: Int,
+)
+
+data class SnippetGroup(
+    val category: SnippetCategory,
+    val snippets: List<Snippet>,
+)
 
 data class Template(
     val body: String,

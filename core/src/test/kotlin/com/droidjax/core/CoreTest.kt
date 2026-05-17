@@ -56,6 +56,7 @@ class CoreTest {
         assertEquals(6, operation.initialCursorPosition)
         assertEquals(3, operation.cursorOffsetFromEnd)
         assertEquals(listOf(6..6, 8..8), operation.placeholderRanges)
+        assertEquals(listOf("numerator", "denominator"), operation.placeholders.map { it.label })
     }
 
     @Test
@@ -89,6 +90,42 @@ class CoreTest {
         assertContains(categories, SnippetCatalog.Category.Operators)
         assertContains(categories, SnippetCatalog.Category.Relations)
         assertContains(categories, SnippetCatalog.Category.Arrows)
+        assertContains(categories, SnippetCatalog.Category.Functions)
+        assertContains(categories, SnippetCatalog.Category.Accents)
+        assertContains(categories, SnippetCatalog.Category.Sets)
+    }
+
+    @Test
+    fun catalogCategoriesHaveStableDisplayOrder() {
+        val categories = SnippetCatalog.categories()
+
+        assertEquals(SnippetCatalog.Category.Delimiters, categories.first().id)
+        assertEquals("Delimiters", categories.first().title)
+        assertEquals(categories.map { it.sortOrder }, categories.map { it.sortOrder }.sorted())
+    }
+
+    @Test
+    fun groupedCatalogUsesCategoryOrderAndOmitsEmptyGroups() {
+        val groups = SnippetCatalog.groupedBuiltIn(
+            snippets = listOf(snippet("fraction"), snippet("alpha")),
+        )
+
+        assertEquals(
+            listOf(SnippetCatalog.Category.Structure, SnippetCatalog.Category.Greek),
+            groups.map { it.category.id },
+        )
+        assertEquals(listOf("fraction"), groups.first().snippets.map { it.id })
+    }
+
+    @Test
+    fun snippetsExposeUiPreviewAndAccessibilityText() {
+        val alpha = snippet("alpha")
+        val fraction = snippet("fraction")
+
+        assertEquals("α", alpha.previewText)
+        assertEquals("alpha", alpha.accessibilityLabel)
+        assertEquals("a/b", fraction.previewText)
+        assertEquals("Fraction", fraction.accessibilityLabel)
     }
 
     @Test
@@ -109,6 +146,14 @@ class CoreTest {
             SnippetCatalog.search("maps-to").map { it.id }.toSet(),
             "maps-to",
         )
+        assertContains(
+            SnippetCatalog.search("α").map { it.id }.toSet(),
+            "alpha",
+        )
+        assertContains(
+            SnippetCatalog.search("ℝ").map { it.id }.toSet(),
+            "real-numbers",
+        )
     }
 
     @Test
@@ -124,6 +169,68 @@ class CoreTest {
 
         assertEquals(5, PlaceholderNavigator.nextCursorPosition(combined, 2))
         assertEquals(6, PlaceholderNavigator.nextCursorPosition(combined, 5))
+    }
+
+    @Test
+    fun templateEngineSupportsLabeledPlaceholdersAndDefaults() {
+        val operation = TemplateEngine.toInsertOperation(
+            Template("\\frac{<|numerator=n>}{<denominator=d>}"),
+        )
+
+        assertEquals("\\frac{n}{d}", operation.text)
+        assertEquals(6, operation.initialCursorPosition)
+        assertEquals(listOf(6..6, 9..9), operation.placeholderRanges)
+        assertEquals("numerator", operation.placeholders[0].label)
+        assertEquals("n", operation.placeholders[0].defaultText)
+        assertEquals(6, operation.placeholders[0].start)
+        assertEquals(7, operation.placeholders[0].end)
+        assertEquals("denominator", operation.placeholders[1].label)
+        assertEquals("d", operation.placeholders[1].defaultText)
+    }
+
+    @Test
+    fun templateEngineSupportsMultiCharacterDefaultSelections() {
+        val operation = TemplateEngine.toInsertOperation(
+            Template("\\hat{<|value=theta>}"),
+        )
+
+        assertEquals("\\hat{theta}", operation.text)
+        assertEquals(5, operation.initialCursorPosition)
+        assertEquals(5, operation.placeholderRanges.first().count())
+        assertEquals(5, operation.placeholders.first().start)
+        assertEquals(10, operation.placeholders.first().end)
+    }
+
+    @Test
+    fun placeholderSessionTracksCurrentPlaceholderAndFinalCursor() {
+        val operation = snippet("fraction").toInsertOperation()
+        val session = PlaceholderSession.start(operation)
+        val second = session.next()
+        val final = second.next()
+
+        assertEquals("numerator", session.currentPlaceholder?.label)
+        assertEquals(6, session.cursorPosition)
+        assertEquals("denominator", second.currentPlaceholder?.label)
+        assertEquals(8, second.cursorPosition)
+        assertEquals(9, final.cursorPosition)
+        assertTrue(final.isComplete)
+    }
+
+    @Test
+    fun expandedCatalogContainsCommonMultiPlaceholderSnippets() {
+        val snippets = SnippetCatalog.builtIn().associateBy { it.id }
+
+        assertEquals(
+            "\\begin{matrix} &  \\\\  & \\end{matrix}",
+            snippets.getValue("matrix-2x2").toInsertOperation().text,
+        )
+        assertEquals(
+            "\\begin{cases} & \\end{cases}",
+            snippets.getValue("cases").toInsertOperation().text,
+        )
+        assertEquals("\\sin{x}", snippets.getValue("sin").toInsertOperation().text)
+        assertEquals("\\vec{x}", snippets.getValue("vec").toInsertOperation().text)
+        assertEquals("\\mathbb{R}", snippets.getValue("real-numbers").toInsertOperation().text)
     }
 
     private fun snippet(

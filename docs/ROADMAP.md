@@ -27,17 +27,18 @@ chat history.
 - [x] Add an Android adapter that applies `InsertOperation` to `InputConnection`.
 - [x] Add a minimal `InputMethodService` proof of concept.
 - [x] Add a minimal app/settings shell.
-- [ ] Add a normal Activity-based floating helper prototype before overlay or
+- [x] Add a normal Activity-based floating helper prototype before overlay or
   accessibility behavior.
 
 ## Core Expansion
 
-- [ ] Add snippet grouping models for UI display order and labels.
-- [ ] Add user-facing symbol metadata such as preview text and accessibility
+- [x] Add snippet grouping models for UI display order and labels.
+- [x] Add user-facing symbol metadata such as preview text and accessibility
   labels.
-- [ ] Decide whether placeholders need labels or default selected text.
-- [ ] Add matrices, cases, aligned equations, functions, accents, and common
+- [x] Decide whether placeholders need labels or default selected text.
+- [x] Add matrices, cases, aligned equations, functions, accents, and common
   sets.
+- [x] Add a pure Kotlin placeholder session model for frontend cursor movement.
 - [ ] Add user-defined snippets.
 - [ ] Add recent snippets and favorites models.
 
