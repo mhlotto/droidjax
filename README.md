@@ -135,6 +135,18 @@ val favorites = FavoriteSnippets().add(ref)
 val recents = RecentSnippets().recordUse(ref, usedAt = 1)
 ```
 
+Use one core-facing state object when a frontend wants the pieces composed:
+
+```kotlin
+val state = DroidJaxState()
+    .withActiveDelimiterProfile(DelimiterProfile.DollarStyle.id)
+    .toggleFavorite("fraction")
+    .recordSnippetUse("fraction", usedAt = 1)
+
+val snippets = state.search("frac")
+val validation = state.validate()
+```
+
 ## Tests
 
 Run the core test suite with:

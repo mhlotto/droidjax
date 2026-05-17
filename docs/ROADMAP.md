@@ -45,6 +45,8 @@ chat history.
 - [x] Add a pure Kotlin text composer for shared insertion and placeholder movement.
 - [x] Add ranked catalog search with match metadata.
 - [x] Add recent snippets and favorites models.
+- [x] Add a pure Kotlin aggregate state model that composes snippets, profiles,
+  favorites, and recents.
 
 ## Settings And Persistence
 

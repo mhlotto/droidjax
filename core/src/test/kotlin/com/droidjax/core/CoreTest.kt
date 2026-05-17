@@ -543,6 +543,83 @@ class CoreTest {
         assertEquals("[display][/display]", snippets.getValue("display-math").toInsertOperation().text)
     }
 
+    @Test
+    fun droidJaxStateDefaultsValidateAndExposeActiveSnippets() {
+        val state = DroidJaxState()
+
+        assertTrue(state.validate().isValid)
+        assertEquals(DelimiterProfile.DefaultMathJax, state.activeDelimiterProfile)
+        assertEquals("\\(\\)", state.search("inline").first { it.id == "inline-math" }.toInsertOperation().text)
+    }
+
+    @Test
+    fun droidJaxStateUsesActiveDelimiterProfileForBuiltIns() {
+        val state = DroidJaxState()
+            .withActiveDelimiterProfile(DelimiterProfile.DollarStyle.id)
+
+        assertEquals(DelimiterProfile.DollarStyle, state.activeDelimiterProfile)
+        assertEquals("$$", state.search("inline").first { it.id == "inline-math" }.toInsertOperation().text)
+        assertTrue(state.validate().isValid)
+    }
+
+    @Test
+    fun droidJaxStateComposesUserSnippetsWithActiveBuiltIns() {
+        val state = DroidJaxState(
+            snippetLibrary = SnippetLibrary(
+                userSnippets = listOf(
+                    UserSnippet(
+                        id = "quadratic-formula",
+                        title = "Quadratic Formula",
+                        templateBody = "x = \\frac{<|term=-b> \\pm \\sqrt{<radicand=b^2-4ac>}}{<denominator=2a>}",
+                        aliases = listOf("quadratic"),
+                    ),
+                ),
+            ),
+        )
+
+        assertContains(state.search("quadratic").map { it.id }.toSet(), "quadratic-formula")
+        assertContains(state.rankedSearch("inline").map { it.snippet.id }.toSet(), "inline-math")
+        assertContains(
+            state.grouped().flatMap { it.snippets }.map { it.id }.toSet(),
+            "quadratic-formula",
+        )
+    }
+
+    @Test
+    fun droidJaxStateUpdatesFavoritesAndRecents() {
+        val state = DroidJaxState()
+            .toggleFavorite("fraction")
+            .recordSnippetUse("fraction", usedAt = 10)
+            .recordSnippetUse("square-root", usedAt = 20)
+
+        assertEquals(listOf("fraction"), state.favoriteSnippets().map { it.id })
+        assertEquals(listOf("square-root", "fraction"), state.recentSnippets().map { it.id })
+    }
+
+    @Test
+    fun droidJaxStateValidationReportsNestedLibraryIssuesAndMissingActiveProfile() {
+        val state = DroidJaxState(
+            snippetLibrary = SnippetLibrary(
+                userSnippets = listOf(
+                    UserSnippet(
+                        id = "bad user id",
+                        title = "",
+                        templateBody = "<|=x>",
+                    ),
+                ),
+            ),
+            delimiterProfileLibrary = DelimiterProfileLibrary(
+                userProfiles = listOf(DelimiterProfile.DefaultMathJax),
+            ),
+            activeDelimiterProfileId = "missing-profile",
+        )
+        val validation = state.validate()
+
+        assertContainsIssue<InvalidStateSnippetLibrary>(validation.issues)
+        assertContainsIssue<InvalidStateDelimiterProfileLibrary>(validation.issues)
+        assertContainsIssue<MissingActiveDelimiterProfile>(validation.issues)
+    }
+
     private fun snippet(
         id: String,
         profile: DelimiterProfile = DelimiterProfile.DefaultMathJax,

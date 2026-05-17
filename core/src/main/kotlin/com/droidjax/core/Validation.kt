@@ -141,3 +141,23 @@ enum class DelimiterSide {
     Open,
     Close,
 }
+
+sealed interface DroidJaxStateValidationIssue : ValidationIssue
+
+data class InvalidStateSnippetLibrary(
+    val issue: ValidationIssue,
+) : DroidJaxStateValidationIssue {
+    override val message: String = issue.message
+}
+
+data class InvalidStateDelimiterProfileLibrary(
+    val issue: ValidationIssue,
+) : DroidJaxStateValidationIssue {
+    override val message: String = issue.message
+}
+
+data class MissingActiveDelimiterProfile(
+    val id: String,
+) : DroidJaxStateValidationIssue {
+    override val message: String = "Active delimiter profile does not exist: $id."
+}
