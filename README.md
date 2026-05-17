@@ -83,6 +83,17 @@ val profile = DelimiterProfile(
 )
 ```
 
+Validate and look up delimiter profiles:
+
+```kotlin
+val profiles = DelimiterProfileLibrary(
+    userProfiles = listOf(profile),
+)
+
+val activeProfile = profiles.findById("custom")
+val profileValidation = profiles.validate()
+```
+
 Validate and compose user snippets:
 
 ```kotlin

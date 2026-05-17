@@ -93,3 +93,51 @@ data class InvalidCatalogSnippet(
 ) : CatalogValidationIssue {
     override val message: String = issue.message
 }
+
+sealed interface DelimiterProfileValidationIssue : ValidationIssue
+
+data class InvalidDelimiterProfileId(
+    val id: String,
+) : DelimiterProfileValidationIssue {
+    override val message: String =
+        "Delimiter profile id must use lowercase letters, numbers, and hyphens: $id."
+}
+
+data class BlankDelimiterProfileTitle(
+    val id: String,
+) : DelimiterProfileValidationIssue {
+    override val message: String = "Delimiter profile title must not be blank for $id."
+}
+
+data class BlankInlineDelimiter(
+    val id: String,
+    val side: DelimiterSide,
+) : DelimiterProfileValidationIssue {
+    override val message: String = "Inline ${side.name.lowercase()} delimiter must not be blank for $id."
+}
+
+data class BlankDisplayDelimiter(
+    val id: String,
+    val side: DelimiterSide,
+) : DelimiterProfileValidationIssue {
+    override val message: String = "Display ${side.name.lowercase()} delimiter must not be blank for $id."
+}
+
+sealed interface DelimiterProfileLibraryValidationIssue : ValidationIssue
+
+data class DuplicateDelimiterProfileId(
+    val id: String,
+) : DelimiterProfileLibraryValidationIssue {
+    override val message: String = "Duplicate delimiter profile id: $id."
+}
+
+data class InvalidDelimiterProfile(
+    val issue: DelimiterProfileValidationIssue,
+) : DelimiterProfileLibraryValidationIssue {
+    override val message: String = issue.message
+}
+
+enum class DelimiterSide {
+    Open,
+    Close,
+}

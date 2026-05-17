@@ -473,6 +473,76 @@ class CoreTest {
         assertTrue(recents.clear().items.isEmpty())
     }
 
+    @Test
+    fun builtInDelimiterProfilesValidateAndCanBeFound() {
+        val library = DelimiterProfileLibrary()
+
+        assertTrue(library.validate().isValid)
+        assertEquals(
+            listOf("default-mathjax", "dollar-style"),
+            library.profiles.map { it.id },
+        )
+        assertEquals(DelimiterProfile.DollarStyle, library.findById("dollar-style"))
+    }
+
+    @Test
+    fun delimiterProfileValidationReportsBadProfileFields() {
+        val validation = DelimiterProfileValidator.validate(
+            DelimiterProfile(
+                id = "Bad Id",
+                title = "",
+                inlineOpen = "",
+                inlineClose = "",
+                displayOpen = "",
+                displayClose = "",
+            ),
+        )
+
+        assertContainsIssue<InvalidDelimiterProfileId>(validation.issues)
+        assertContainsIssue<BlankDelimiterProfileTitle>(validation.issues)
+        assertContainsIssue<BlankInlineDelimiter>(validation.issues)
+        assertContainsIssue<BlankDisplayDelimiter>(validation.issues)
+    }
+
+    @Test
+    fun delimiterProfileLibraryReportsDuplicateIdsAndInvalidProfiles() {
+        val library = DelimiterProfileLibrary(
+            userProfiles = listOf(
+                DelimiterProfile.DefaultMathJax,
+                DelimiterProfile(
+                    id = "bad profile",
+                    title = "",
+                    inlineOpen = "\\(",
+                    inlineClose = "\\)",
+                    displayOpen = "\\[",
+                    displayClose = "",
+                ),
+            ),
+        )
+        val validation = library.validate()
+
+        assertContainsIssue<DuplicateDelimiterProfileId>(validation.issues)
+        assertContainsIssue<InvalidDelimiterProfile>(validation.issues)
+    }
+
+    @Test
+    fun customDelimiterProfileGeneratesInlineAndDisplaySnippets() {
+        val profile = DelimiterProfile(
+            id = "forum-style",
+            title = "Forum Style",
+            inlineOpen = "[math]",
+            inlineClose = "[/math]",
+            displayOpen = "[display]",
+            displayClose = "[/display]",
+        )
+        val snippets = SnippetCatalog.builtIn(profile).associateBy { it.id }
+
+        assertTrue(DelimiterProfileValidator.validate(profile).isValid)
+        assertEquals("[math][/math]", snippets.getValue("inline-math").toInsertOperation().text)
+        assertEquals(6, snippets.getValue("inline-math").toInsertOperation().initialCursorPosition)
+        assertEquals("[display][/display]", snippets.getValue("display-math").toInsertOperation().text)
+    }
+
     private fun snippet(
         id: String,
         profile: DelimiterProfile = DelimiterProfile.DefaultMathJax,

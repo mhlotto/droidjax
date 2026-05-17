@@ -48,6 +48,7 @@ chat history.
 
 ## Settings And Persistence
 
+- [x] Add delimiter profile validation and library models for built-ins plus custom profiles.
 - [ ] Add settings models for active delimiter profile and catalog preferences.
 - [ ] Persist settings in Android modules, not `:core`.
 - [ ] Feed persisted settings into `:core` when building catalogs and operations.
