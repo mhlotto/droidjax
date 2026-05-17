@@ -42,7 +42,9 @@ chat history.
 - [x] Add user-defined snippet and snippet pack models.
 - [x] Add pure Kotlin snippet/template/catalog validation.
 - [x] Add catalog composition for built-ins plus user snippets.
-- [ ] Add recent snippets and favorites models.
+- [x] Add a pure Kotlin text composer for shared insertion and placeholder movement.
+- [x] Add ranked catalog search with match metadata.
+- [x] Add recent snippets and favorites models.
 
 ## Settings And Persistence
 

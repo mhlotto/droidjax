@@ -49,6 +49,12 @@ data class SnippetLibrary(
             snippets = snippets,
         )
 
+    fun rankedSearch(query: String): List<SnippetSearchResult> =
+        SnippetCatalog.rankedSearch(
+            query = query,
+            snippets = snippets,
+        )
+
     fun grouped(snippets: List<Snippet> = this.snippets): List<SnippetGroup> {
         val snippetsByCategory = snippets.groupBy { it.category }
         return categories.mapNotNull { category ->

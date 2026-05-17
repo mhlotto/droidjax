@@ -2,7 +2,7 @@ package com.droidjax.android.common
 
 import android.widget.EditText
 import com.droidjax.core.InsertOperation
-import com.droidjax.core.PlaceholderSession
+import com.droidjax.core.TextComposer
 
 object EditTextInsertAdapter {
     fun insert(
@@ -13,15 +13,16 @@ object EditTextInsertAdapter {
         val selectionEnd = editText.selectionEnd.coerceAtLeast(0)
         val replaceStart = minOf(selectionStart, selectionEnd)
         val replaceEnd = maxOf(selectionStart, selectionEnd)
+        val composer = TextComposer(
+            text = editText.text.toString(),
+            selectionStart = replaceStart,
+            selectionEnd = replaceEnd,
+        ).insert(operation)
 
-        editText.text.replace(replaceStart, replaceEnd, operation.text)
-
-        val session = PlaceholderSession.start(operation)
-        val newSelectionStart = replaceStart + session.cursorPosition
-        val newSelectionEnd = replaceStart + session.selectionEnd
+        editText.text.replace(0, editText.text.length, composer.text)
         editText.setSelection(
-            newSelectionStart.coerceIn(0, editText.text.length),
-            newSelectionEnd.coerceIn(0, editText.text.length),
+            composer.selectionStart.coerceIn(0, editText.text.length),
+            composer.selectionEnd.coerceIn(0, editText.text.length),
         )
 
         return replaceStart

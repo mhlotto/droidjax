@@ -182,20 +182,62 @@ object SnippetCatalog {
     fun search(
         query: String,
         snippets: List<Snippet> = builtIn(),
-    ): List<Snippet> {
-        val normalizedQuery = query.trim().lowercase()
-        if (normalizedQuery.isEmpty()) return snippets
+    ): List<Snippet> = rankedSearch(
+        query = query,
+        snippets = snippets,
+    ).map { it.snippet }
 
-        return snippets.filter { snippet ->
-            listOf(
-                snippet.id,
-                snippet.title,
-                snippet.templateBody,
-                snippet.previewText,
-                snippet.accessibilityLabel,
-            ).any { it.contains(normalizedQuery, ignoreCase = true) } ||
-                snippet.aliases.any { it.contains(normalizedQuery, ignoreCase = true) }
+    fun rankedSearch(
+        query: String,
+        snippets: List<Snippet> = builtIn(),
+    ): List<SnippetSearchResult> {
+        val normalizedQuery = query.trim().lowercase()
+        if (normalizedQuery.isEmpty()) {
+            return snippets.map { snippet ->
+                SnippetSearchResult(
+                    snippet = snippet,
+                    score = 0,
+                    match = SnippetSearchMatch.EmptyQuery,
+                )
+            }
         }
+
+        return snippets.mapNotNull { snippet ->
+            snippet.bestSearchResult(normalizedQuery)
+        }.sortedWith(
+            compareByDescending<SnippetSearchResult> { it.score }
+                .thenBy { it.snippet.title.lowercase() }
+                .thenBy { it.snippet.id },
+        )
+    }
+
+    private fun Snippet.bestSearchResult(query: String): SnippetSearchResult? {
+        val candidates = mutableListOf<Pair<Int, SnippetSearchMatch>>()
+        val id = id.lowercase()
+        val title = title.lowercase()
+        val aliases = aliases.map { it.lowercase() }
+        val tex = templateBody.lowercase()
+        val preview = previewText.lowercase()
+        val accessibility = accessibilityLabel.lowercase()
+
+        if (id == query) candidates += 1000 to SnippetSearchMatch.ExactId
+        if (title == query) candidates += 950 to SnippetSearchMatch.ExactTitle
+        if (title.startsWith(query)) candidates += 900 to SnippetSearchMatch.TitlePrefix
+        if (aliases.any { it == query }) candidates += 850 to SnippetSearchMatch.AliasExact
+        if (aliases.any { it.startsWith(query) }) candidates += 800 to SnippetSearchMatch.AliasPrefix
+        if (id.contains(query)) candidates += 700 to SnippetSearchMatch.IdContains
+        if (title.contains(query)) candidates += 650 to SnippetSearchMatch.TitleContains
+        if (aliases.any { it.contains(query) }) candidates += 600 to SnippetSearchMatch.AliasContains
+        if (tex.contains(query)) candidates += 450 to SnippetSearchMatch.TexContains
+        if (preview.contains(query)) candidates += 400 to SnippetSearchMatch.PreviewContains
+        if (accessibility.contains(query)) candidates += 350 to SnippetSearchMatch.AccessibilityContains
+
+        val best = candidates.maxByOrNull { it.first } ?: return null
+        return SnippetSearchResult(
+            snippet = this,
+            score = best.first,
+            match = best.second,
+        )
     }
 
     private fun greekSnippets(): List<Snippet> = listOf(

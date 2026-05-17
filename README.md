@@ -100,6 +100,30 @@ if (validation.isValid) {
 }
 ```
 
+Compose text without Android APIs:
+
+```kotlin
+val composer = TextComposer("Area: ")
+    .insert(SnippetCatalog.builtIn().first { it.id == "fraction" })
+
+val next = composer.nextPlaceholder()
+```
+
+Use ranked search when UI needs ordering or match diagnostics:
+
+```kotlin
+val results = SnippetCatalog.rankedSearch("frac")
+val firstMatch = results.first().match
+```
+
+Track favorites and recents without Android persistence:
+
+```kotlin
+val ref = SnippetRef("fraction")
+val favorites = FavoriteSnippets().add(ref)
+val recents = RecentSnippets().recordUse(ref, usedAt = 1)
+```
+
 ## Tests
 
 Run the core test suite with:

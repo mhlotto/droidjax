@@ -336,6 +336,143 @@ class CoreTest {
         assertContainsIssue<InvalidCatalogSnippet>(validation.issues)
     }
 
+    @Test
+    fun textComposerInsertsSnippetAndMovesThroughPlaceholders() {
+        val composer = TextComposer("before  after", selectionStart = 7)
+            .insert(snippet("fraction"))
+        val second = composer.nextPlaceholder()
+        val final = second.nextPlaceholder()
+
+        assertEquals("before \\frac{}{} after", composer.text)
+        assertEquals(13, composer.selectionStart)
+        assertEquals(13, composer.selectionEnd)
+        assertEquals(15, second.selectionStart)
+        assertEquals(15, second.selectionEnd)
+        assertEquals(16, final.selectionStart)
+        assertEquals(16, final.selectionEnd)
+    }
+
+    @Test
+    fun textComposerReplacesSelectionAndSelectsDefaultPlaceholderText() {
+        val composer = TextComposer("abcXYZdef", selectionStart = 3, selectionEnd = 6)
+            .insert(snippet("sin"))
+
+        assertEquals("abc\\sin{x}def", composer.text)
+        assertEquals(8, composer.selectionStart)
+        assertEquals(9, composer.selectionEnd)
+    }
+
+    @Test
+    fun rankedSearchOrdersExactAndPrefixMatchesBeforeFallbacks() {
+        val results = SnippetCatalog.rankedSearch("limit")
+
+        assertEquals("limit", results.first().snippet.id)
+        assertEquals(SnippetSearchMatch.ExactId, results.first().match)
+        assertContains(results.map { it.snippet.id }.toSet(), "superscript-subscript")
+        assertTrue(
+            results.first { it.snippet.id == "limit" }.score >
+                results.first { it.snippet.id == "superscript-subscript" }.score,
+        )
+    }
+
+    @Test
+    fun rankedSearchReportsMatchKindForPreviewAndAliasMatches() {
+        val previewResult = SnippetCatalog.rankedSearch("ℝ").first()
+        val aliasResult = SnippetCatalog.rankedSearch("division").first()
+
+        assertEquals("real-numbers", previewResult.snippet.id)
+        assertEquals(SnippetSearchMatch.PreviewContains, previewResult.match)
+        assertEquals("fraction", aliasResult.snippet.id)
+        assertEquals(SnippetSearchMatch.AliasExact, aliasResult.match)
+    }
+
+    @Test
+    fun snippetLibraryExposesRankedSearchAcrossUserSnippets() {
+        val library = SnippetLibrary(
+            userSnippets = listOf(
+                UserSnippet(
+                    id = "custom-limit",
+                    title = "Custom Limit",
+                    templateBody = "\\lim_{<|variable=x> \\to <target=0>}",
+                    aliases = listOf("limit"),
+                ),
+            ),
+        )
+        val result = library.rankedSearch("custom").first()
+
+        assertEquals("custom-limit", result.snippet.id)
+        assertEquals(SnippetSearchMatch.TitlePrefix, result.match)
+    }
+
+    @Test
+    fun favoritesPreserveInsertionOrderAndIgnoreDuplicates() {
+        val fraction = SnippetRef("fraction")
+        val sqrt = SnippetRef("square-root")
+        val favorites = FavoriteSnippets()
+            .add(fraction)
+            .add(sqrt)
+            .add(fraction)
+
+        assertEquals(listOf(fraction, sqrt), favorites.refs)
+        assertTrue(favorites.contains(fraction))
+    }
+
+    @Test
+    fun favoritesToggleAndResolveAgainstLibrary() {
+        val fraction = SnippetRef("fraction")
+        val sqrt = SnippetRef("square-root")
+        val favorites = FavoriteSnippets()
+            .toggle(fraction)
+            .toggle(sqrt)
+            .toggle(fraction)
+
+        assertEquals(listOf(sqrt), favorites.refs)
+        assertEquals(
+            listOf("square-root"),
+            favorites.resolve(SnippetLibrary()).map { it.id },
+        )
+    }
+
+    @Test
+    fun recentsRecordMostRecentFirstAndIncrementUseCount() {
+        val fraction = SnippetRef("fraction")
+        val sqrt = SnippetRef("square-root")
+        val recents = RecentSnippets(maxSize = 5)
+            .recordUse(fraction, usedAt = 10)
+            .recordUse(sqrt, usedAt = 20)
+            .recordUse(fraction, usedAt = 30)
+
+        assertEquals(listOf(fraction, sqrt), recents.items.map { it.ref })
+        assertEquals(2, recents.items.first { it.ref == fraction }.useCount)
+        assertEquals(30, recents.items.first { it.ref == fraction }.lastUsedAt)
+    }
+
+    @Test
+    fun recentsTrimToMaxSizeAndTieBreakById() {
+        val recents = RecentSnippets(maxSize = 2)
+            .recordUse(SnippetRef("gamma"), usedAt = 10)
+            .recordUse(SnippetRef("alpha"), usedAt = 10)
+            .recordUse(SnippetRef("beta"), usedAt = 20)
+
+        assertEquals(
+            listOf("beta", "alpha"),
+            recents.items.map { it.ref.id },
+        )
+    }
+
+    @Test
+    fun recentsRemoveClearAndResolveAgainstLibrary() {
+        val fraction = SnippetRef("fraction")
+        val missing = SnippetRef("missing")
+        val recents = RecentSnippets(maxSize = 5)
+            .recordUse(fraction, usedAt = 10)
+            .recordUse(missing, usedAt = 20)
+            .remove(missing)
+
+        assertEquals(listOf("fraction"), recents.resolve(SnippetLibrary()).map { it.id })
+        assertTrue(recents.clear().items.isEmpty())
+    }
+
     private fun snippet(
         id: String,
         profile: DelimiterProfile = DelimiterProfile.DefaultMathJax,
