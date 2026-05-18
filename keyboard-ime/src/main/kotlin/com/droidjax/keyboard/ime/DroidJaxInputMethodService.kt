@@ -1,16 +1,36 @@
 package com.droidjax.keyboard.ime
 
+import android.content.Context
 import android.inputmethodservice.InputMethodService
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.LinearLayout
+import com.droidjax.android.common.DroidJaxStateStore
 import com.droidjax.android.common.InputConnectionInsertAdapter
+import com.droidjax.android.common.SharedPreferencesDroidJaxStateStore
+import com.droidjax.core.DroidJaxState
 import com.droidjax.core.Snippet
-import com.droidjax.core.SnippetCatalog
 
 class DroidJaxInputMethodService : InputMethodService() {
+    private lateinit var stateStore: DroidJaxStateStore
+
+    private var state: DroidJaxState = DroidJaxState()
+
+    override fun onCreate() {
+        super.onCreate()
+        stateStore = SharedPreferencesDroidJaxStateStore(
+            sharedPreferences = getSharedPreferences(
+                SharedPreferencesDroidJaxStateStore.DefaultName,
+                Context.MODE_PRIVATE,
+            ),
+        )
+        state = stateStore.load()
+    }
+
     override fun onCreateInputView(): View {
+        state = stateStore.load()
+
         val row = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             layoutParams = ViewGroup.LayoutParams(
@@ -38,16 +58,23 @@ class DroidJaxInputMethodService : InputMethodService() {
             )
             setOnClickListener {
                 currentInputConnection?.let { inputConnection ->
-                    InputConnectionInsertAdapter.commit(
+                    val committed = InputConnectionInsertAdapter.commit(
                         inputConnection = inputConnection,
                         operation = snippet.toInsertOperation(),
                     )
+                    if (committed) {
+                        state = state.recordSnippetUse(
+                            snippetId = snippet.id,
+                            usedAt = System.currentTimeMillis(),
+                        )
+                        stateStore.save(state)
+                    }
                 }
             }
         }
 
     private fun proofOfConceptSnippets(): List<Snippet> {
-        val byId = SnippetCatalog.builtIn().associateBy { it.id }
+        val byId = state.activeSnippets.associateBy { it.id }
         return listOfNotNull(
             byId["inline-math"],
             byId["fraction"],

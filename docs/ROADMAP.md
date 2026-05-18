@@ -58,7 +58,7 @@ chat history.
 - [x] Feed persisted settings into `:core` when building catalogs and operations.
 - [ ] Persist user-defined snippets and snippet packs once the editing flow exists.
 - [x] Wire persisted `DroidJaxState` into the floating helper prototype.
-- [ ] Wire persisted `DroidJaxState` into the IME prototype.
+- [x] Wire persisted `DroidJaxState` into the IME prototype.
 
 ## Verification
 

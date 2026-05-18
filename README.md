@@ -11,7 +11,8 @@ Android helper for MathJax/TeX input.
   utilities. It currently contains insertion adapters and a SharedPreferences
   store for Android-owned `DroidJaxState` persistence.
 - `:keyboard-ime` is an Android library for the IME frontend. It currently
-  contains a minimal `InputMethodService` proof of concept.
+  contains a minimal `InputMethodService` proof of concept that loads persisted
+  `DroidJaxState`, commits snippets, and records recent snippet usage.
 - `:floating-helper` is an Android library for the normal Activity-based helper
   prototype. It can search grouped snippets, compose TeX, move through
   placeholders, persist delimiter profile changes, record recent snippet usage,
