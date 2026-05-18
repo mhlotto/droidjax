@@ -51,12 +51,18 @@ chat history.
 ## Settings And Persistence
 
 - [x] Add delimiter profile validation and library models for built-ins plus custom profiles.
-- [ ] Add settings models for active delimiter profile and catalog preferences.
-- [ ] Persist settings in Android modules, not `:core`.
-- [ ] Feed persisted settings into `:core` when building catalogs and operations.
+- [x] Add settings models for active delimiter profile and catalog preferences.
+- [x] Persist active delimiter profile, custom delimiter profiles, favorites, and
+  recents in Android modules, not `:core`.
+- [x] Add persistence schema versioning and a first migration path.
+- [x] Feed persisted settings into `:core` when building catalogs and operations.
+- [ ] Persist user-defined snippets and snippet packs once the editing flow exists.
+- [x] Wire persisted `DroidJaxState` into the floating helper prototype.
+- [ ] Wire persisted `DroidJaxState` into the IME prototype.
 
 ## Verification
 
 - [x] Keep `./gradlew test` green.
+- [x] Add Android unit tests for state persistence serialization.
 - [ ] Add Android unit tests for insertion adapters.
 - [ ] Add instrumentation tests once the IME and floating helper have real UI.

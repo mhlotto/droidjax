@@ -8,13 +8,14 @@ Android helper for MathJax/TeX input.
   profiles, placeholder parsing, placeholder navigation, catalog search, and the
   platform-neutral `InsertOperation` model.
 - `:android-common` is an Android library for shared Android wrappers and
-  utilities. It currently contains an `InputConnection` adapter for
-  `InsertOperation`.
+  utilities. It currently contains insertion adapters and a SharedPreferences
+  store for Android-owned `DroidJaxState` persistence.
 - `:keyboard-ime` is an Android library for the IME frontend. It currently
   contains a minimal `InputMethodService` proof of concept.
 - `:floating-helper` is an Android library for the normal Activity-based helper
   prototype. It can search grouped snippets, compose TeX, move through
-  placeholders, switch delimiter profiles in memory, and copy the composed text.
+  placeholders, persist delimiter profile changes, record recent snippet usage,
+  and copy the composed text.
 - `:app` is a minimal Android app shell for future settings and onboarding.
 
 Android modules depend on `:core`; `:core` remains Android-free.
@@ -146,6 +147,28 @@ val state = DroidJaxState()
 val snippets = state.search("frac")
 val validation = state.validate()
 ```
+
+Persist Android-owned state outside `:core`:
+
+```kotlin
+val store = SharedPreferencesDroidJaxStateStore(
+    sharedPreferences = context.getSharedPreferences(
+        SharedPreferencesDroidJaxStateStore.DefaultName,
+        Context.MODE_PRIVATE,
+    ),
+)
+
+val state = store.load()
+val nextState = state
+    .withActiveDelimiterProfile(DelimiterProfile.DollarStyle.id)
+    .recordSnippetUse("fraction", usedAt = System.currentTimeMillis())
+
+store.save(nextState)
+```
+
+The SharedPreferences store owns schema versioning for persisted Android state.
+Legacy unversioned data is upgraded on load; newer unsupported data falls back
+to the provided default state.
 
 ## Tests
 

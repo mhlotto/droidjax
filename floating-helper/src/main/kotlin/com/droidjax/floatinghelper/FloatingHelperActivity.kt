@@ -3,6 +3,7 @@ package com.droidjax.floatinghelper
 import android.app.Activity
 import android.content.ClipData
 import android.content.ClipboardManager
+import android.content.Context
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
@@ -18,23 +19,34 @@ import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
 import com.droidjax.android.common.EditTextInsertAdapter
+import com.droidjax.android.common.SharedPreferencesDroidJaxStateStore
+import com.droidjax.android.common.DroidJaxStateStore
 import com.droidjax.core.DelimiterProfile
+import com.droidjax.core.DroidJaxState
 import com.droidjax.core.InsertOperation
 import com.droidjax.core.PlaceholderNavigator
 import com.droidjax.core.Snippet
-import com.droidjax.core.SnippetCatalog
 
 class FloatingHelperActivity : Activity() {
     private lateinit var composer: EditText
     private lateinit var searchInput: EditText
     private lateinit var snippetContainer: LinearLayout
+    private lateinit var stateStore: DroidJaxStateStore
 
-    private var delimiterProfile: DelimiterProfile = DelimiterProfile.DefaultMathJax
+    private var state: DroidJaxState = DroidJaxState()
     private var lastOperation: InsertOperation? = null
     private var lastOperationStart: Int? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        stateStore = SharedPreferencesDroidJaxStateStore(
+            sharedPreferences = getSharedPreferences(
+                SharedPreferencesDroidJaxStateStore.DefaultName,
+                Context.MODE_PRIVATE,
+            ),
+        )
+        state = stateStore.load()
 
         setContentView(buildContentView())
         renderSnippets()
@@ -107,9 +119,10 @@ class FloatingHelperActivity : Activity() {
                 RadioButton(context).apply {
                     id = View.generateViewId()
                     text = "MathJax"
-                    isChecked = true
+                    isChecked = state.activeDelimiterProfileId == DelimiterProfile.DefaultMathJax.id
                     setOnClickListener {
-                        delimiterProfile = DelimiterProfile.DefaultMathJax
+                        state = state.withActiveDelimiterProfile(DelimiterProfile.DefaultMathJax.id)
+                        stateStore.save(state)
                         renderSnippets()
                     }
                 },
@@ -118,8 +131,10 @@ class FloatingHelperActivity : Activity() {
                 RadioButton(context).apply {
                     id = View.generateViewId()
                     text = "Dollar"
+                    isChecked = state.activeDelimiterProfileId == DelimiterProfile.DollarStyle.id
                     setOnClickListener {
-                        delimiterProfile = DelimiterProfile.DollarStyle
+                        state = state.withActiveDelimiterProfile(DelimiterProfile.DollarStyle.id)
+                        stateStore.save(state)
                         renderSnippets()
                     }
                 },
@@ -156,14 +171,8 @@ class FloatingHelperActivity : Activity() {
         snippetContainer.removeAllViews()
 
         val query = searchInput.text?.toString().orEmpty()
-        val snippets = SnippetCatalog.search(
-            query = query,
-            snippets = SnippetCatalog.builtIn(delimiterProfile),
-        )
-        val groups = SnippetCatalog.groupedBuiltIn(
-            delimiterProfile = delimiterProfile,
-            snippets = snippets,
-        )
+        val snippets = state.search(query)
+        val groups = state.grouped(snippets)
 
         groups.forEach { group ->
             snippetContainer.addView(sectionTitle(group.category.title))
@@ -210,6 +219,11 @@ class FloatingHelperActivity : Activity() {
                 val operation = snippet.toInsertOperation()
                 lastOperationStart = EditTextInsertAdapter.insert(composer, operation)
                 lastOperation = operation
+                state = state.recordSnippetUse(
+                    snippetId = snippet.id,
+                    usedAt = System.currentTimeMillis(),
+                )
+                stateStore.save(state)
                 composer.requestFocus()
             }
             layoutParams = LinearLayout.LayoutParams(
