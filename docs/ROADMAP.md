@@ -64,5 +64,5 @@ chat history.
 
 - [x] Keep `./gradlew test` green.
 - [x] Add Android unit tests for state persistence serialization.
-- [ ] Add Android unit tests for insertion adapters.
+- [x] Add Android unit tests for insertion adapters.
 - [ ] Add instrumentation tests once the IME and floating helper have real UI.
