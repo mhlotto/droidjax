@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DroidJax MathJax Test</title>
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(', '\\)'], ['$', '$']],
+        displayMath: [['\\[', '\\]'], ['$$', '$$']]
+      }
+    };
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+  <style>
+    :root {
+      color-scheme: light;
+      --page: #f6f7f4;
+      --panel: #ffffff;
+      --text: #1e2428;
+      --muted: #59656c;
+      --border: #d5dad6;
+      --accent: #24533b;
+      --accent-soft: #e4f0ea;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--page);
+      color: var(--text);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.4;
+    }
+
+    main {
+      width: min(920px, 100%);
+      margin: 0 auto;
+      padding: 18px;
+    }
+
+    h1 {
+      margin: 0 0 12px;
+      font-size: 24px;
+      letter-spacing: 0;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px;
+      margin: 12px 0;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 180px;
+      resize: vertical;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      font: 16px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      color: var(--text);
+      background: #fff;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    button {
+      min-height: 42px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0 14px;
+      background: #fff;
+      color: var(--text);
+      font: inherit;
+      font-weight: 600;
+    }
+
+    button.primary {
+      border-color: #8bb39d;
+      background: var(--accent-soft);
+      color: var(--accent);
+    }
+
+    #rendered {
+      min-height: 120px;
+      overflow-wrap: anywhere;
+    }
+
+    .muted {
+      color: var(--muted);
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>DroidJax MathJax Test</h1>
+
+    <section class="panel">
+      <label for="tex-input">TeX input</label>
+      <textarea id="tex-input" autocomplete="off" autocapitalize="off" spellcheck="false">\[
+\frac{a}{b} = c
+\]</textarea>
+      <div class="actions">
+        <button class="primary" id="render-button" type="button">Render</button>
+        <button id="clear-button" type="button">Clear</button>
+        <button id="sample-button" type="button">Sample</button>
+      </div>
+      <p class="muted">Use the DroidJax keyboard here, then tap Render.</p>
+    </section>
+
+    <section class="panel">
+      <label>Rendered output</label>
+      <div id="rendered"></div>
+    </section>
+  </main>
+
+  <script>
+    const input = document.getElementById('tex-input');
+    const rendered = document.getElementById('rendered');
+    const renderButton = document.getElementById('render-button');
+    const clearButton = document.getElementById('clear-button');
+    const sampleButton = document.getElementById('sample-button');
+    const sample = '\\\\[\\n\\\\frac{a}{b} = c\\n\\\\]';
+
+    async function renderMath() {
+      rendered.textContent = input.value;
+      if (window.MathJax && window.MathJax.typesetPromise) {
+        await window.MathJax.typesetPromise([rendered]);
+      }
+    }
+
+    renderButton.addEventListener('click', renderMath);
+    clearButton.addEventListener('click', () => {
+      input.value = '';
+      rendered.textContent = '';
+      input.focus();
+    });
+    sampleButton.addEventListener('click', () => {
+      input.value = sample;
+      input.focus();
+    });
+
+    window.addEventListener('load', renderMath);
+  </script>
+</body>
+</html>
