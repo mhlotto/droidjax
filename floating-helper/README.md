@@ -2,11 +2,16 @@
 
 Android floating/snippet helper frontend module.
 
-The current implementation is a normal Activity-based prototype, not an overlay.
-It loads persisted `DroidJaxState` through `:android-common`, renders grouped
-snippets from `:core`, supports search, persists delimiter profile changes,
-records recent snippet usage, inserts snippets into an internal composer, moves
-through placeholder positions for the last inserted snippet, and copies composed
-TeX to the clipboard.
+The current implementation is a normal Activity-based helper, not an overlay. It
+loads persisted `DroidJaxState` through `:android-common` and provides:
+
+- snippet search
+- all/favorites/recents modes
+- category filters
+- favorite toggles
+- active delimiter profile switching
+- internal TeX composer
+- next-placeholder navigation for the last inserted snippet
+- copy and clear actions
 
 Overlay, accessibility, and app-specific behavior should remain outside `:core`.

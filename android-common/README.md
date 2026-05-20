@@ -13,8 +13,9 @@ Kotlin engine. It currently contains:
   Android-owned app state before feeding it back into `:core`.
 
 The SharedPreferences store persists the active delimiter profile id, custom
-delimiter profiles, favorite snippet ids, and recent snippet usage. It does not
-persist built-in catalog data or frontend UI state.
+delimiter profiles, standalone user snippets, snippet packs, favorite snippet
+ids, and recent snippet usage. It does not persist built-in catalog data or
+frontend UI state.
 
 State preferences carry a schema version. Missing versions are treated as legacy
 data and upgraded on load; newer-than-supported versions fall back to the

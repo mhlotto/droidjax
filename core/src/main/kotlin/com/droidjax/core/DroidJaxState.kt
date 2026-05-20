@@ -13,7 +13,7 @@ data class DroidJaxState(
 
     val activeSnippets: List<Snippet>
         get() = SnippetCatalog.builtIn(activeDelimiterProfile) +
-            snippetLibrary.userSnippets.map { it.toSnippet() }
+            snippetLibrary.allUserSnippets.map { it.toSnippet() }
 
     fun activeSnippetLibrary(): SnippetLibrary =
         snippetLibrary.copy(

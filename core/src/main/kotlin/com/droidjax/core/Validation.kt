@@ -161,3 +161,42 @@ data class MissingActiveDelimiterProfile(
 ) : DroidJaxStateValidationIssue {
     override val message: String = "Active delimiter profile does not exist: $id."
 }
+
+sealed interface DroidJaxExportValidationIssue : ValidationIssue
+
+data class UnsupportedExportFormatVersion(
+    val version: Int,
+) : DroidJaxExportValidationIssue {
+    override val message: String = "Unsupported DroidJax export format version: $version."
+}
+
+data class InvalidExportSnippetLibrary(
+    val issue: ValidationIssue,
+) : DroidJaxExportValidationIssue {
+    override val message: String = issue.message
+}
+
+data class InvalidExportDelimiterProfileLibrary(
+    val issue: ValidationIssue,
+) : DroidJaxExportValidationIssue {
+    override val message: String = issue.message
+}
+
+data class InvalidSnippetPackId(
+    val id: String,
+) : DroidJaxExportValidationIssue {
+    override val message: String =
+        "Snippet pack id must use lowercase letters, numbers, and hyphens: $id."
+}
+
+data class BlankSnippetPackTitle(
+    val id: String,
+) : DroidJaxExportValidationIssue {
+    override val message: String = "Snippet pack title must not be blank for $id."
+}
+
+data class DuplicateSnippetPackId(
+    val id: String,
+) : DroidJaxExportValidationIssue {
+    override val message: String = "Duplicate snippet pack id: $id."
+}

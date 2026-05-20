@@ -11,12 +11,12 @@ Android helper for MathJax/TeX input.
   utilities. It currently contains insertion adapters and a SharedPreferences
   store for Android-owned `DroidJaxState` persistence.
 - `:keyboard-ime` is an Android library for the IME frontend. It currently
-  contains a minimal `InputMethodService` proof of concept that loads persisted
-  `DroidJaxState`, commits snippets, and records recent snippet usage.
+  contains a compact `InputMethodService` keyboard with mode/category browsing,
+  snippet keys, delimiter switching, favorites, and recents.
 - `:floating-helper` is an Android library for the normal Activity-based helper
-  prototype. It can search grouped snippets, compose TeX, move through
-  placeholders, persist delimiter profile changes, record recent snippet usage,
-  and copy the composed text.
+  surface. It can browse snippets by mode/category, search, save favorites,
+  compose TeX, move through placeholders, persist delimiter profile changes,
+  record recent snippet usage, and copy the composed text.
 - `:app` is a minimal Android app shell for future settings and onboarding.
 
 Android modules depend on `:core`; `:core` remains Android-free.
@@ -113,6 +113,40 @@ if (validation.isValid) {
 }
 ```
 
+Group reusable snippets into packs:
+
+```kotlin
+val calculusPack = SnippetPack(
+    id = "calculus",
+    title = "Calculus",
+    snippets = listOf(
+        UserSnippet(
+            id = "custom-derivative",
+            title = "Derivative",
+            templateBody = "\\frac{d}{d<|variable=x>} <expression=f>",
+            aliases = listOf("derivative"),
+        ),
+    ),
+)
+
+val library = SnippetLibrary(snippetPacks = listOf(calculusPack))
+val matches = library.search("derivative")
+```
+
+Create a portable import/export payload:
+
+```kotlin
+val export = DroidJaxExport.fromState(state)
+val validation = export.validate()
+
+if (validation.isValid) {
+    val importedState = export.importInto(DroidJaxState()).value
+}
+```
+
+`DroidJaxExport` is a pure Kotlin model. It does not choose a wire format; UI or
+sharing code can serialize it as JSON or another format later.
+
 Compose text without Android APIs:
 
 ```kotlin
@@ -169,7 +203,9 @@ store.save(nextState)
 
 The SharedPreferences store owns schema versioning for persisted Android state.
 Legacy unversioned data is upgraded on load; newer unsupported data falls back
-to the provided default state.
+to the provided default state. It persists active delimiter profile, custom
+delimiter profiles, standalone user snippets, snippet packs, favorites, and
+recents.
 
 ## Tests
 
@@ -178,6 +214,16 @@ Run the core test suite with:
 ```sh
 ./gradlew test
 ```
+
+Run a phone-friendly MathJax test page for IME testing:
+
+```sh
+make mathjax-test-server
+```
+
+Open the printed network URL on your phone while it is on the same Wi-Fi as this
+machine. The page has a TeX textarea and a Render button backed by MathJax 3 from
+jsDelivr, so the phone needs network access to load MathJax the first time.
 
 The Android modules require a local Android SDK. On this machine,
 `local.properties` points Gradle at `/Users/arr/Library/Android/sdk`; that file is

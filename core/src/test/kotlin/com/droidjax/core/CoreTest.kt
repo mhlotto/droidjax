@@ -315,6 +315,35 @@ class CoreTest {
     }
 
     @Test
+    fun snippetLibraryCombinesUserSnippetPacks() {
+        val library = SnippetLibrary(
+            snippetPacks = listOf(
+                SnippetPack(
+                    id = "calculus",
+                    title = "Calculus",
+                    snippets = listOf(
+                        UserSnippet(
+                            id = "custom-derivative",
+                            title = "Derivative",
+                            category = SnippetCatalog.Category.Operators,
+                            templateBody = "\\frac{d}{d<|variable=x>} <expression=f>",
+                            aliases = listOf("derivative"),
+                        ),
+                    ),
+                ),
+            ),
+        )
+
+        assertTrue(library.validate().isValid)
+        assertEquals(listOf("custom-derivative"), library.allUserSnippets.map { it.id })
+        assertContains(library.search("derivative").map { it.id }.toSet(), "custom-derivative")
+        assertContains(
+            library.grouped().flatMap { it.snippets }.map { it.id }.toSet(),
+            "custom-derivative",
+        )
+    }
+
+    @Test
     fun snippetLibraryValidationIncludesUserSnippetProblems() {
         val library = SnippetLibrary(
             userSnippets = listOf(
@@ -574,10 +603,25 @@ class CoreTest {
                         aliases = listOf("quadratic"),
                     ),
                 ),
+                snippetPacks = listOf(
+                    SnippetPack(
+                        id = "calculus",
+                        title = "Calculus",
+                        snippets = listOf(
+                            UserSnippet(
+                                id = "custom-derivative",
+                                title = "Derivative",
+                                templateBody = "\\frac{d}{d<|variable=x>} <expression=f>",
+                                aliases = listOf("derivative"),
+                            ),
+                        ),
+                    ),
+                ),
             ),
         )
 
         assertContains(state.search("quadratic").map { it.id }.toSet(), "quadratic-formula")
+        assertContains(state.search("derivative").map { it.id }.toSet(), "custom-derivative")
         assertContains(state.rankedSearch("inline").map { it.snippet.id }.toSet(), "inline-math")
         assertContains(
             state.grouped().flatMap { it.snippets }.map { it.id }.toSet(),
@@ -618,6 +662,133 @@ class CoreTest {
         assertContainsIssue<InvalidStateSnippetLibrary>(validation.issues)
         assertContainsIssue<InvalidStateDelimiterProfileLibrary>(validation.issues)
         assertContainsIssue<MissingActiveDelimiterProfile>(validation.issues)
+    }
+
+    @Test
+    fun droidJaxExportRoundTripsUserSnippetsPacksAndProfiles() {
+        val profile = DelimiterProfile(
+            id = "forum-style",
+            title = "Forum Style",
+            inlineOpen = "[math]",
+            inlineClose = "[/math]",
+            displayOpen = "[display]",
+            displayClose = "[/display]",
+        )
+        val state = DroidJaxState(
+            snippetLibrary = SnippetLibrary(
+                userSnippets = listOf(
+                    UserSnippet(
+                        id = "quadratic-formula",
+                        title = "Quadratic Formula",
+                        templateBody = "x = \\frac{<|term=-b>}{<denominator=2a>}",
+                        aliases = listOf("quadratic"),
+                    ),
+                ),
+                snippetPacks = listOf(
+                    SnippetPack(
+                        id = "calculus",
+                        title = "Calculus",
+                        snippets = listOf(
+                            UserSnippet(
+                                id = "custom-derivative",
+                                title = "Derivative",
+                                templateBody = "\\frac{d}{d<|variable=x>} <expression=f>",
+                                aliases = listOf("derivative"),
+                            ),
+                        ),
+                    ),
+                ),
+            ),
+            delimiterProfileLibrary = DelimiterProfileLibrary(
+                userProfiles = listOf(profile),
+            ),
+        )
+
+        val export = DroidJaxExport.fromState(state)
+        val imported = export.importInto().value!!
+
+        assertTrue(export.validate().isValid)
+        assertEquals(DroidJaxExport.CurrentFormatVersion, export.formatVersion)
+        assertEquals(state.snippetLibrary.userSnippets, imported.snippetLibrary.userSnippets)
+        assertEquals(state.snippetLibrary.snippetPacks, imported.snippetLibrary.snippetPacks)
+        assertEquals(
+            state.delimiterProfileLibrary.userProfiles,
+            imported.delimiterProfileLibrary.userProfiles,
+        )
+        assertContains(imported.search("derivative").map { it.id }.toSet(), "custom-derivative")
+    }
+
+    @Test
+    fun droidJaxExportValidationReportsUnsupportedVersionAndNestedIssues() {
+        val export = DroidJaxExport(
+            formatVersion = DroidJaxExport.CurrentFormatVersion + 1,
+            userSnippets = listOf(
+                UserSnippetExport(
+                    id = "bad snippet id",
+                    title = "",
+                    templateBody = "<|=x>",
+                ),
+            ),
+            snippetPacks = listOf(
+                SnippetPackExport(
+                    id = "bad pack id",
+                    title = "",
+                    snippets = listOf(
+                        UserSnippetExport(
+                            id = "bad snippet id",
+                            title = "Duplicate Bad Snippet",
+                            templateBody = "<|value>",
+                        ),
+                    ),
+                ),
+                SnippetPackExport(
+                    id = "bad pack id",
+                    title = "Duplicate Pack",
+                ),
+            ),
+            delimiterProfiles = listOf(
+                DelimiterProfileExport(
+                    id = "bad profile",
+                    title = "",
+                    inlineOpen = "",
+                    inlineClose = "",
+                    displayOpen = "",
+                    displayClose = "",
+                ),
+            ),
+        )
+        val validation = export.validate()
+
+        assertContainsIssue<UnsupportedExportFormatVersion>(validation.issues)
+        assertContainsIssue<InvalidSnippetPackId>(validation.issues)
+        assertContainsIssue<BlankSnippetPackTitle>(validation.issues)
+        assertContainsIssue<DuplicateSnippetPackId>(validation.issues)
+        assertContainsIssue<InvalidExportSnippetLibrary>(validation.issues)
+        assertContainsIssue<InvalidExportDelimiterProfileLibrary>(validation.issues)
+        assertTrue(export.importInto().issues.isNotEmpty())
+    }
+
+    @Test
+    fun droidJaxExportImportPreservesBaseStateAndReplacesPortableCollections() {
+        val baseState = DroidJaxState()
+            .toggleFavorite("fraction")
+            .recordSnippetUse("fraction", usedAt = 10)
+        val export = DroidJaxExport(
+            userSnippets = listOf(
+                UserSnippetExport(
+                    id = "custom-note",
+                    title = "Custom Note",
+                    templateBody = "\\text{<|value>}",
+                    aliases = listOf("note"),
+                ),
+            ),
+        )
+
+        val imported = export.importInto(baseState).value!!
+
+        assertEquals(baseState.favorites, imported.favorites)
+        assertEquals(baseState.recents, imported.recents)
+        assertContains(imported.search("note").map { it.id }.toSet(), "custom-note")
     }
 
     private fun snippet(

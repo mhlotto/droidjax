@@ -29,10 +29,14 @@ data class SnippetPack(
 data class SnippetLibrary(
     val builtIns: List<Snippet> = SnippetCatalog.builtIn(),
     val userSnippets: List<UserSnippet> = emptyList(),
+    val snippetPacks: List<SnippetPack> = emptyList(),
     val categories: List<SnippetCategory> = SnippetCatalog.categories(),
 ) {
     val snippets: List<Snippet>
-        get() = builtIns + userSnippets.map { it.toSnippet() }
+        get() = builtIns + allUserSnippets.map { it.toSnippet() }
+
+    val allUserSnippets: List<UserSnippet>
+        get() = userSnippets + snippetPacks.flatMap { it.snippets }
 
     fun validate(): ValidationResult<SnippetLibrary> {
         val catalogValidation = SnippetValidator.validateCatalog(snippets, categories)

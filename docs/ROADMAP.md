@@ -26,9 +26,13 @@ chat history.
 
 - [x] Add an Android adapter that applies `InsertOperation` to `InputConnection`.
 - [x] Add a minimal `InputMethodService` proof of concept.
+- [x] Build first real IME keyboard surface with snippet keys, modes,
+  categories, favorites, recents, delimiter switching, and utility keys.
 - [x] Add a minimal app/settings shell.
 - [x] Add a normal Activity-based floating helper prototype before overlay or
   accessibility behavior.
+- [x] Build first real floating helper browser/composer UI with search,
+  categories, favorites, recents, delimiter switching, and copy flow.
 
 ## Core Expansion
 
@@ -40,6 +44,8 @@ chat history.
   sets.
 - [x] Add a pure Kotlin placeholder session model for frontend cursor movement.
 - [x] Add user-defined snippet and snippet pack models.
+- [x] Add pure Kotlin import/export models for snippets, snippet packs, and
+  delimiter profiles.
 - [x] Add pure Kotlin snippet/template/catalog validation.
 - [x] Add catalog composition for built-ins plus user snippets.
 - [x] Add a pure Kotlin text composer for shared insertion and placeholder movement.
@@ -56,7 +62,7 @@ chat history.
   recents in Android modules, not `:core`.
 - [x] Add persistence schema versioning and a first migration path.
 - [x] Feed persisted settings into `:core` when building catalogs and operations.
-- [ ] Persist user-defined snippets and snippet packs once the editing flow exists.
+- [x] Persist user-defined snippets and snippet packs.
 - [x] Wire persisted `DroidJaxState` into the floating helper prototype.
 - [x] Wire persisted `DroidJaxState` into the IME prototype.
 
@@ -65,4 +71,5 @@ chat history.
 - [x] Keep `./gradlew test` green.
 - [x] Add Android unit tests for state persistence serialization.
 - [x] Add Android unit tests for insertion adapters.
+- [x] Add a local MathJax browser test page for on-device IME testing.
 - [ ] Add instrumentation tests once the IME and floating helper have real UI.

@@ -6,7 +6,10 @@ import com.droidjax.core.DroidJaxState
 import com.droidjax.core.FavoriteSnippets
 import com.droidjax.core.RecentSnippet
 import com.droidjax.core.RecentSnippets
+import com.droidjax.core.SnippetLibrary
+import com.droidjax.core.SnippetPack
 import com.droidjax.core.SnippetRef
+import com.droidjax.core.UserSnippet
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -23,6 +26,32 @@ class DroidJaxStatePreferencesCodecTest {
             displayClose = "\\end{equation}",
         )
         val state = DroidJaxState(
+            snippetLibrary = SnippetLibrary(
+                userSnippets = listOf(
+                    UserSnippet(
+                        id = "quadratic-formula",
+                        title = "Quadratic Formula",
+                        templateBody = "x = \\frac{<|term=-b>}{<denominator=2a>}",
+                        aliases = listOf("quadratic", "formula"),
+                        previewText = "quadratic",
+                        accessibilityLabel = "Quadratic formula",
+                    ),
+                ),
+                snippetPacks = listOf(
+                    SnippetPack(
+                        id = "calculus",
+                        title = "Calculus",
+                        snippets = listOf(
+                            UserSnippet(
+                                id = "custom-derivative",
+                                title = "Derivative",
+                                templateBody = "\\frac{d}{d<|variable=x>} <expression=f>",
+                                aliases = listOf("derivative"),
+                            ),
+                        ),
+                    ),
+                ),
+            ),
             delimiterProfileLibrary = DelimiterProfileLibrary(
                 userProfiles = listOf(customProfile),
             ),
@@ -57,6 +86,23 @@ class DroidJaxStatePreferencesCodecTest {
         )
 
         assertEquals(DroidJaxStatePreferencesSchema.CurrentSchemaVersion, snapshot.schemaVersion)
+        assertEquals(
+            listOf("quadratic-formula"),
+            restored.snippetLibrary.userSnippets.map { it.id },
+        )
+        assertEquals("quadratic", restored.snippetLibrary.userSnippets.single().previewText)
+        assertEquals(
+            listOf("calculus"),
+            restored.snippetLibrary.snippetPacks.map { it.id },
+        )
+        assertEquals(
+            listOf("custom-derivative"),
+            restored.snippetLibrary.snippetPacks.single().snippets.map { it.id },
+        )
+        assertEquals(
+            listOf("quadratic-formula", "custom-derivative"),
+            restored.snippetLibrary.allUserSnippets.map { it.id },
+        )
         assertEquals(customProfile.id, restored.activeDelimiterProfileId)
         assertEquals(customProfile, restored.delimiterProfileLibrary.userProfiles.single())
         assertEquals(
@@ -74,6 +120,28 @@ class DroidJaxStatePreferencesCodecTest {
     @Test
     fun `missing persisted values preserve default state`() {
         val defaultState = DroidJaxState(
+            snippetLibrary = SnippetLibrary(
+                userSnippets = listOf(
+                    UserSnippet(
+                        id = "default-snippet",
+                        title = "Default Snippet",
+                        templateBody = "<|value>",
+                    ),
+                ),
+                snippetPacks = listOf(
+                    SnippetPack(
+                        id = "default-pack",
+                        title = "Default Pack",
+                        snippets = listOf(
+                            UserSnippet(
+                                id = "default-pack-snippet",
+                                title = "Default Pack Snippet",
+                                templateBody = "<|value>",
+                            ),
+                        ),
+                    ),
+                ),
+            ),
             activeDelimiterProfileId = DelimiterProfile.DollarStyle.id,
             favorites = FavoriteSnippets(
                 refs = listOf(SnippetRef("fraction")),
@@ -98,6 +166,7 @@ class DroidJaxStatePreferencesCodecTest {
         )
 
         assertEquals(defaultState.activeDelimiterProfileId, restored.activeDelimiterProfileId)
+        assertEquals(defaultState.snippetLibrary, restored.snippetLibrary)
         assertEquals(defaultState.favorites, restored.favorites)
         assertEquals(defaultState.recents, restored.recents)
     }
@@ -157,10 +226,14 @@ class DroidJaxStatePreferencesCodecTest {
                 recentSnippets = "not\tvalid\tdata",
                 recentMaxSize = -1,
                 userDelimiterProfiles = "bad-profile",
+                userSnippets = "bad-snippet",
+                snippetPacks = "bad-pack",
             ),
             defaultState = DroidJaxState(),
         )
 
+        assertTrue(restored.snippetLibrary.userSnippets.isEmpty())
+        assertTrue(restored.snippetLibrary.snippetPacks.isEmpty())
         assertEquals(DelimiterProfile.DefaultMathJax.id, restored.activeDelimiterProfileId)
         assertTrue(restored.delimiterProfileLibrary.userProfiles.isEmpty())
         assertTrue(restored.favorites.refs.isEmpty())
