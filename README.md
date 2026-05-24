@@ -1,5 +1,7 @@
 # DroidJax
 
+![DroidJax logo](droidjax.png)
+
 Android helper for MathJax/TeX input.
 
 ## Module structure
